@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Upload and Screenshot Capture</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -142,14 +143,21 @@
 <body>
     <header>
         <h1>Upload Excel File and Capture Screenshots</h1>
-        <p>Upload an Excel file containing links, and the system will capture screenshots of the URLs and show progress.</p>
+        <p>Upload an Excel file containing links, and the system will capture screenshots of the
+            URLs and show progress.</p>
     </header>
 
     <!-- Form Upload -->
     <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
-        <label for="excelFile">Upload Excel File:</label>
-        <input type="file" name="excelFile" id="excelFile" required>
+        <label for="fileUpload">Upload Excel File:</label>
+        <input type="file" name="fileUpload" id="fileUpload" required>
         <button type="submit">Submit Screenshot</button>
+        <button type="button" id="stopButton"
+            style="background-color: red; color: white; margin-left: 10px;">Stop</button>
+
+        <button type="button" id="startButton"
+            style="background-color: blue; color: white; margin-left: 10px;">Start</button>
+
     </form>
 
     <!-- Pie Chart -->
@@ -158,7 +166,7 @@
     </div>
 
     <!-- Loading Message -->
-    <div id="loadingMessage">Loading... Please wait while processing.</div>
+    <div id="loadingMessage"></div>
 
     <!-- Preview Images and Links -->
     <table class="image-table" id="imageTable">
@@ -179,7 +187,12 @@
         <button id="downloadBtn" class="download-btn"
             onclick="window.location.href='/downloadFolder'">Download Folder</button>
     </div>
-
+    <!-- Modal to display larger image -->
+    <div id="imageModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+        <div id="caption"></div>
+    </div>
     <!-- Socket.io Script -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -216,13 +229,17 @@
             }
         });
 
+
+        socket.on("uploadStatus", data => {
+            document.getElementById('loadingMessage').innerHTML = `<h1>${data.message}</h1>`;
+        })
+
         // Listen to progress update from the server
         socket.on('updateProgress', (data) => {
             totalFiles = data.totalFiles;
             const processedFiles = data.processedFiles;
 
             // Hide loading message once progress starts
-            document.getElementById('loadingMessage').style.display = 'none';
 
             // Update the pie chart
             processedCount += 1; // Increment processed count for each new file processed
@@ -300,14 +317,26 @@
         span.onclick = function () {
             modal.style.display = 'none';
         }
-    </script>
 
-    <!-- Modal to display larger image -->
-    <div id="imageModal" class="modal">
-        <span class="close">&times;</span>
-        <img class="modal-content" id="modalImage">
-        <div id="caption"></div>
-    </div>
+        // Biến để theo dõi trạng thái stop
+        let isStopped = false;
+
+        // Xử lý khi nhấn nút Stop
+        document.getElementById('stopButton').addEventListener('click', function () {
+            isStopped = true; // Đặt trạng thái dừng
+            socket.emit('stopProcess'); // Gửi tín hiệu đến server
+            alert('Processing stopped!');
+        });
+
+        // Xử lý khi nhấn nút Start
+        document.getElementById('startButton').addEventListener('click', function () {
+            isStopped = false; // Đặt trạng thái dừng
+            socket.emit('startProcess'); // Gửi tín hiệu đến server
+            alert('Processing started!');
+        });
+
+
+    </script>
 </body>
 
 </html>

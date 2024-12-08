@@ -17,7 +17,20 @@ const io = socketIo(server);
 const PORT = 3000;
 
 // Cấu hình multer để upload file Excel
-const upload = multer({ dest: 'uploads/' });
+// const upload = multer({ dest: 'uploads/' });
+// Cấu hình multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        // Thư mục lưu file upload
+        cb(null, path.join(__dirname, 'uploads'));
+    },
+    filename: (req, file, cb) => {
+        // Sử dụng tên file gốc
+        cb(null, file.originalname);
+    }
+});
+
+const upload = multer({ storage });
 
 // Middleware và cấu hình EJS
 app.use(express.static('public'));
@@ -58,53 +71,210 @@ function zipFolder(sourceDir, outputPath) {
     });
 }
 
+
 // Xử lý upload file và export ảnh
-app.post('/upload', upload.single('excelFile'), async (req, res) => {
+// app.post('/upload', upload.single('fileUpload'), async (req, res) => {
+//     try {
+//         const filePath = req.file.path;
+//         console.log(filePath)
+//         const workbook = xlsx.readFile(filePath);
+//         const sheetName = workbook.SheetNames[0];
+//         const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+//         // Thư mục lưu ảnh chụp
+//         const outputDir = path.join(__dirname, 'public', 'screenshots');
+//         if (!fs.existsSync(outputDir)) {
+//             fs.mkdirSync(outputDir, { recursive: true });
+//         }
+
+//         // Cập nhật số lượng file cần xử lý
+//         io.emit('uploadStatus', { message: 'Processing started' });
+
+//         let processedImages = []; // Mảng lưu trữ ảnh đã chụp
+
+//         // Xử lý dữ liệu và chụp ảnh
+//         for (let i = 0; i < data.length; i++) {
+//             const link = data[i].Link; // Cột Link chứa URL
+//             if (link) {
+//                 const currentDate = new Date().toISOString().replace(/[-T:.Z]/g, ''); // Tạo chuỗi ngày tháng
+//                 const imageName = `screenshot_${currentDate}_${i + 1}.png`; // Thêm ngày vào tên ảnh
+//                 const imagePath = path.join(outputDir, imageName);
+
+//                 try {
+//                     await captureScreenshot(link, imagePath);
+//                     data[i].Image = `/screenshots/${imageName}`;  // Lưu đường dẫn ảnh
+//                     processedImages.push({ productLink: link, imagePath: data[i].Image }); // Thêm ảnh và link vào mảng
+
+//                     // Gửi tiến độ đến client
+//                     io.emit('updateProgress', {
+//                         totalFiles: data.length,
+//                         processedFiles: {
+//                             imagePath: processedImages[processedImages.length - 1].imagePath, // latest image URL
+//                             productLink: processedImages[processedImages.length - 1].productLink // link for the last product
+//                         }
+//                     });
+//                 } catch (err) {
+//                     console.error(`Error capturing screenshot for ${link}:`, err.message);
+//                     // Gửi thông báo lỗi nếu có sự cố
+//                     io.emit('updateProgress', {
+//                         totalFiles: data.length,
+//                         processedFiles: {
+//                             imagePath: '', // Có thể chỉ gửi thông báo lỗi
+//                             productLink: link
+//                         }
+//                     });
+//                 }
+//             }
+//         }
+
+//         // Tạo file ZIP chứa ảnh
+//         const zipPath = path.join(__dirname, 'public', 'screenshots.zip');
+//         await zipFolder(outputDir, zipPath);
+
+//         // Xóa file Excel upload ban đầu
+//         fs.unlinkSync(filePath);
+
+//         io.emit('success_render', { message: 'Processing completed. Download zip at /downloadFolder.' });
+//     } catch (err) {
+//         console.error('Error processing file:', err.message);
+//         res.status(500).send('Error processing file.');
+//     }
+// });
+
+let isStopped = false; // Biến trạng thái theo dõi dừng chương trình
+io.on('connection', (socket) => {
+    console.log('User connected');
+
+    // Lắng nghe sự kiện "stopProcess" từ client
+    socket.on('stopProcess', () => {
+        isStopped = true; // Đánh dấu quá trình đã dừng
+        socket.emit('uploadStatus', { message: 'Process stopped!' });
+        console.log('Processing stopped by user');
+    });
+
+    // Lắng nghe sự kiện "startProcess" để bắt đầu lại
+    socket.on('startProcess', () => {
+        isStopped = false; // Đặt lại trạng thái dừng
+        socket.emit('uploadStatus', { message: 'Process started!' });
+        console.log('Processing started');
+    });
+});
+
+
+
+app.post('/upload', upload.single('fileUpload'), async (req, res) => {
     try {
         const filePath = req.file.path;
-        const workbook = xlsx.readFile(filePath);
-        const sheetName = workbook.SheetNames[0];
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        const fileExt = path.extname(filePath).toLowerCase();
+        let data = []; // Mảng lưu dữ liệu từ file (Excel hoặc TXT)
 
-        // Thư mục lưu ảnh chụp
+        // Đọc dữ liệu từ file
+        if (fileExt === '.xlsx' || fileExt === '.xls') {
+            // Đọc file Excel
+            const workbook = xlsx.readFile(filePath);
+            const sheetName = workbook.SheetNames[0];
+            data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        } else if (fileExt === '.txt') {
+            // Đọc file TXT
+            const fileContent = fs.readFileSync(filePath, 'utf-8');
+            // Tách các liên kết, loại bỏ dấu phẩy và khoảng trắng thừa
+            const links = fileContent
+                .split(',') // Tách qua dấu phẩy
+                .map(link => link.trim()) // Xóa khoảng trắng thừa
+                .filter(link => link.startsWith('https')); // Chỉ giữ các link hợp lệ bắt đầu bằng "http"
+
+            if (links.length === 0) {
+                return res.status(400).send('No valid links found in the TXT file.');
+            }
+
+            data = links.map((link, index) => ({ Link: link, Index: index + 1 }));
+        } else {
+            return res.status(400).send('Unsupported file format. Please upload an Excel or TXT file.');
+        }
+
+        // Tạo thư mục lưu ảnh chụp
         const outputDir = path.join(__dirname, 'public', 'screenshots');
         if (!fs.existsSync(outputDir)) {
             fs.mkdirSync(outputDir, { recursive: true });
         }
 
-        // Cập nhật số lượng file cần xử lý
+        // Gửi thông báo bắt đầu xử lý
         io.emit('uploadStatus', { message: 'Processing started' });
 
-        let processedImages = []; // Mảng lưu trữ ảnh đã chụp
+        let processedImages = []; // Mảng lưu ảnh đã xử lý
 
-        // Xử lý dữ liệu và chụp ảnh
+        // Xử lý từng URL
+        // for (let i = 0; i < data.length; i++) {
+        //     const link = data[i].Link; // Cột "Link" chứa URL
+        //     if (link) {
+        //         const currentDate = new Date().toISOString().replace(/[-T:.Z]/g, '');
+        //         const imageName = `screenshot_${currentDate}_${i + 1}.png`;
+        //         const imagePath = path.join(outputDir, imageName);
+
+        //         try {
+        //             // Chụp ảnh từ URL
+        //             await captureScreenshot(link, imagePath);
+        //             data[i].Image = `/screenshots/${imageName}`; // Lưu đường dẫn ảnh
+        //             processedImages.push({ productLink: link, imagePath: data[i].Image });
+
+        //             // Gửi tiến độ đến client
+        //             io.emit('updateProgress', {
+        //                 totalFiles: data.length,
+        //                 processedFiles: {
+        //                     imagePath: processedImages[processedImages.length - 1].imagePath,
+        //                     productLink: processedImages[processedImages.length - 1].productLink
+        //                 }
+        //             });
+        //         } catch (err) {
+        //             console.error(`Error capturing screenshot for ${link}:`, err.message);
+
+        //             // Gửi thông báo lỗi nếu có sự cố
+        //             io.emit('updateProgress', {
+        //                 totalFiles: data.length,
+        //                 processedFiles: {
+        //                     imagePath: '', // Gửi thông báo lỗi
+        //                     productLink: link
+        //                 }
+        //             });
+        //         }
+        //     }
+        // }
+        // Xử lý từng URL
+        console.log('isStopper: ', isStopped)
         for (let i = 0; i < data.length; i++) {
-            const link = data[i].Link; // Cột Link chứa URL
+            if (isStopped) {
+                console.log('Processing stopped by user.');
+                break; // Dừng vòng lặp nếu trạng thái dừng được kích hoạt
+            }
+
+            const link = data[i].Link; // Cột "Link" chứa URL
             if (link) {
-                const currentDate = new Date().toISOString().replace(/[-T:.Z]/g, ''); // Tạo chuỗi ngày tháng
-                const imageName = `screenshot_${currentDate}_${i + 1}.png`; // Thêm ngày vào tên ảnh
+                const currentDate = new Date().toISOString().replace(/[-T:.Z]/g, '');
+                const imageName = `screenshot_${currentDate}_${i + 1}.png`;
                 const imagePath = path.join(outputDir, imageName);
 
                 try {
+                    // Chụp ảnh từ URL
                     await captureScreenshot(link, imagePath);
-                    data[i].Image = `/screenshots/${imageName}`;  // Lưu đường dẫn ảnh
-                    processedImages.push({ productLink: link, imagePath: data[i].Image }); // Thêm ảnh và link vào mảng
+                    data[i].Image = `/screenshots/${imageName}`; // Lưu đường dẫn ảnh
+                    processedImages.push({ productLink: link, imagePath: data[i].Image });
 
                     // Gửi tiến độ đến client
                     io.emit('updateProgress', {
                         totalFiles: data.length,
                         processedFiles: {
-                            imagePath: processedImages[processedImages.length - 1].imagePath, // latest image URL
-                            productLink: processedImages[processedImages.length - 1].productLink // link for the last product
+                            imagePath: processedImages[processedImages.length - 1].imagePath,
+                            productLink: processedImages[processedImages.length - 1].productLink
                         }
                     });
                 } catch (err) {
                     console.error(`Error capturing screenshot for ${link}:`, err.message);
+
                     // Gửi thông báo lỗi nếu có sự cố
                     io.emit('updateProgress', {
                         totalFiles: data.length,
                         processedFiles: {
-                            imagePath: '', // Có thể chỉ gửi thông báo lỗi
+                            imagePath: '', // Gửi thông báo lỗi
                             productLink: link
                         }
                     });
@@ -116,10 +286,11 @@ app.post('/upload', upload.single('excelFile'), async (req, res) => {
         const zipPath = path.join(__dirname, 'public', 'screenshots.zip');
         await zipFolder(outputDir, zipPath);
 
-        // Xóa file Excel upload ban đầu
-        fs.unlinkSync(filePath);
+        // Xóa file upload ban đầu
+        await fs.promises.unlink(filePath);
 
         io.emit('success_render', { message: 'Processing completed. Download zip at /downloadFolder.' });
+        res.status(200).send('Processing completed successfully.');
     } catch (err) {
         console.error('Error processing file:', err.message);
         res.status(500).send('Error processing file.');
