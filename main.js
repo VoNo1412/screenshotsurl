@@ -185,6 +185,17 @@ function cleanUp() {
     }
 }
 
+// Kiểm tra và tạo thư mục cần thiết
+const ensureFolderExists = (folderPath) => {
+    if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath, { recursive: true });
+        console.log(`Created folder: ${folderPath}`);
+    }
+};
+
+ensureFolderExists(path.join(__dirname, 'uploads'));
+ensureFolderExists(path.join(__dirname, 'public'));
+
 // Xử lý sự kiện khi server tắt
 process.on('exit', cleanUp);
 process.on('SIGINT', () => {
