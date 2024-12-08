@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload and Screenshot Capture</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        header h1 {
+            font-size: 2em;
+        }
+
+        header p {
+            font-size: 1.2em;
+            margin-top: 5px;
+        }
+
+        .image-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+
+        .image-table th,
+        .image-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .image-table th {
+            background-color: #f2f2f2;
+        }
+
+        .image-preview {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .download-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .download-btn:hover {
+            background-color: #45a049;
+        }
+
+        #pieChart {
+            width: 100%;
+            height: 300px;
+        }
+
+        #pieChartContainer {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+
+        #loadingMessage {
+            font-size: 1.2em;
+            color: #f44336;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        /* The Modal (background) */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            padding-top: 60px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.9);
+        }
+
+        /* Modal Content (Image) */
+        .modal-content {
+            margin: auto;
+            display: block;
+            width: 80%;
+            max-width: 700px;
+        }
+
+        /* Caption of Modal Image */
+        #caption {
+            text-align: center;
+            color: #ccc;
+            font-size: 20px;
+            padding: 10px 0;
+        }
+
+        /* The Close Button */
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Upload Excel File and Capture Screenshots</h1>
+        <p>Upload an Excel file containing links, and the system will capture screenshots of the URLs and show progress.</p>
+    </header>
+
+    <!-- Form Upload -->
+    <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+        <label for="excelFile">Upload Excel File:</label>
+        <input type="file" name="excelFile" id="excelFile" required>
+        <button type="submit">Submit Screenshot</button>
+    </form>
+
+    <!-- Pie Chart -->
+    <div id="pieChartContainer">
+        <canvas id="pieChart"></canvas>
+    </div>
+
+    <!-- Loading Message -->
+    <div id="loadingMessage">Loading... Please wait while processing.</div>
+
+    <!-- Preview Images and Links -->
+    <table class="image-table" id="imageTable">
+        <thead>
+            <tr>
+                <th>Preview</th>
+                <th>Product Link</th>
+            </tr>
+        </thead>
+        <tbody id="imageTableBody">
+            <!-- Images and Links will be dynamically added here -->
+        </tbody>
+    </table>
+
+    <div id="successMessage"
+        style="display: none; background-color: #7cb25f; color: white; padding: 10px; margin-top: 20px;">
+        <p id="successText"></p>
+        <button id="downloadBtn" class="download-btn"
+            onclick="window.location.href='/downloadFolder'">Download Folder</button>
+    </div>
+
+    <!-- Socket.io Script -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // Default Pie Chart with 0% processed and 100% remaining
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        let processedCount = 0; // Tracks the number of processed files
+        let totalFiles = 0; // Tracks the total number of files
+
+        const pieData = {
+            labels: ['Processed', 'Remaining'],
+            datasets: [{
+                data: [0, 100], // 0% processed, 100% remaining
+                backgroundColor: ['#4caf50', '#638ed4'],
+                borderColor: ['#4caf50', '#638ed4'],
+                borderWidth: 1
+            }]
+        };
+
+        const pieChart = new Chart(ctx, {
+            type: 'pie',
+            data: pieData,
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        enabled: true
+                    }
+                }
+            }
+        });
+
+        // Listen to progress update from the server
+        socket.on('updateProgress', (data) => {
+            totalFiles = data.totalFiles;
+            const processedFiles = data.processedFiles;
+
+            // Hide loading message once progress starts
+            document.getElementById('loadingMessage').style.display = 'none';
+
+            // Update the pie chart
+            processedCount += 1; // Increment processed count for each new file processed
+            const remainingFiles = totalFiles - processedCount;
+
+            pieChart.data.datasets[0].data = [processedCount, remainingFiles];
+            pieChart.update();
+
+            // Update table with processed images and links
+            const tableBody = document.getElementById('imageTableBody');
+            const newRow = document.createElement('tr');
+
+            // Check if the imagePath is valid and exists
+            const imageUrl = processedFiles.imagePath ? processedFiles.imagePath : 'path/to/default/image.jpg'; // fallback image if url is invalid
+
+            newRow.innerHTML = ` 
+                <td><img src="${imageUrl}" class="image-preview" alt="Preview"></td>
+                <td><a href="${processedFiles.productLink}" target="_blank">${processedFiles.productLink}</a></td>
+            `;
+            tableBody.appendChild(newRow);
+        });
+
+        // Listen to the success_render event from the server
+        socket.on('success_render', (data) => {
+            // Get the success message from the server
+            const successMessage = data.message;
+
+            // Update the success message text
+            const successText = document.getElementById('successText');
+            successText.textContent = successMessage;
+
+            // Show the success message container
+            const successMessageContainer = document.getElementById('successMessage');
+            successMessageContainer.style.display = 'block';
+        });
+
+        // Prevent form reload and handle AJAX submission
+        const uploadForm = document.getElementById('uploadForm');
+        uploadForm.addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent page reload
+
+            // Create a FormData object
+            const formData = new FormData(uploadForm);
+
+            // Send form data using fetch (AJAX)
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Upload successful:', data);
+                })
+                .catch(error => {
+                    console.error('Upload error:', error);
+                });
+        });
+
+        // Modal functionality to display clicked image
+        const modal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const captionText = document.getElementById('caption');
+
+        // Add event listener to images in the table
+        document.getElementById('imageTable').addEventListener('click', function (event) {
+            if (event.target && event.target.classList.contains('image-preview')) {
+                modal.style.display = 'block';
+                modalImage.src = event.target.src;
+                captionText.innerHTML = event.target.alt;
+            }
+        });
+
+        // Close modal when clicking on the 'x'
+        const span = document.getElementsByClassName('close')[0];
+        span.onclick = function () {
+            modal.style.display = 'none';
+        }
+    </script>
+
+    <!-- Modal to display larger image -->
+    <div id="imageModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+        <div id="caption"></div>
+    </div>
+</body>
+
+</html>
