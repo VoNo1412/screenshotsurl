@@ -58,21 +58,6 @@ function zipFolder(sourceDir, outputPath) {
     });
 }
 
-// Hàm chụp màn hình từ link
-async function captureScreenshot(url, imagePath) {
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    try {
-        await page.goto(url, { waitUntil: 'networkidle2' });
-        await page.screenshot({ path: imagePath, fullPage: true });
-        console.log(`Screenshot saved: ${imagePath}`);
-    } catch (err) {
-        console.error(`Error capturing screenshot for ${url}:`, err.message);
-    } finally {
-        await browser.close();
-    }
-}
-
 // Xử lý upload file và export ảnh
 app.post('/upload', upload.single('excelFile'), async (req, res) => {
     try {
@@ -186,8 +171,29 @@ app.get('/downloadFolder', (req, res) => {
     archive.finalize();
 });
 
+// Hàm xóa file khi server tắt
+function cleanUp() {
+    const folderPath = path.join(__dirname, 'public', 'screenshots');
+    const zipPath = path.join(__dirname, 'public', 'screenshots.zip');
+    // Kiểm tra nếu thư mục ảnh tồn tại thì xóa
+    if (fs.existsSync(folderPath)) {
+        fs.rmdirSync(folderPath, { recursive: true });
+    }
+    // Kiểm tra nếu file zip tồn tại thì xóa
+    if (fs.existsSync(zipPath)) {
+        fs.unlinkSync(zipPath);
+    }
+}
+
+// Xử lý sự kiện khi server tắt
+process.on('exit', cleanUp);
+process.on('SIGINT', () => {
+    console.log('Server is shutting down...');
+    cleanUp();
+    process.exit();
+});
+
 // Khởi động server với Socket.IO
 server.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
-
