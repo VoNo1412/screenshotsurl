@@ -1,5 +1,6 @@
 <%- include('partials/navbar') %>
-<h1>SCREEN SHOT</h1>
+    <h1>SCREEN SHOT CUT</h1>
+
     <!-- Form Upload -->
     <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
         <label for="fileUpload">Upload Excel File:</label>
@@ -26,6 +27,7 @@
         <thead>
             <tr>
                 <th>Preview</th>
+                <th>Title</th>
                 <th>Product Link</th>
             </tr>
         </thead>
@@ -92,14 +94,12 @@
         })
 
         // Listen to progress update from the server
-        socket.on('updateProgress', (data) => {
+        socket.on('updateProgressReact', (data) => {
             totalFiles = data.totalFiles;
-            const processedFiles = data.processedFiles;
+            const processedFiles = data.products;
 
-            // Hide loading message once progress starts
-
-            // Update the pie chart
-            processedCount += 1; // Increment processed count for each new file processed
+            // // Update the pie chart
+            processedCount += data.processed; // Increment processed count for each new file processed
             const remainingFiles = totalFiles - processedCount;
 
             pieChart.data.datasets[0].data = [processedCount, remainingFiles];
@@ -107,16 +107,20 @@
 
             // Update table with processed images and links
             const tableBody = document.getElementById('imageTableBody');
-            const newRow = document.createElement('tr');
 
-            // Check if the imagePath is valid and exists
-            const imageUrl = processedFiles.imagePath ? processedFiles.imagePath : 'path/to/default/image.jpg'; // fallback image if url is invalid
+            for (let i = 0; i < processedFiles.length; i++) {
+                const element = processedFiles[i];
+                const imageUrl = element.imagePath ? element.imagePath : 'path/to/default/image.jpg'; // fallback image if url is invalid
+                const newRow = document.createElement('tr');
+                console.log("product: ", element)
+                    newRow.innerHTML = ` 
+                    <td><img src="${imageUrl}" class="image-preview" alt="Preview"></td>
+                    <td>${element.title}</td>
+                    <td><a href="${element.productLink}" target="_blank">${element.productLink}</a></td>
+                `;
+                tableBody.appendChild(newRow); // Move this line inside the loop
+            }
 
-            newRow.innerHTML = ` 
-                <td><img src="${imageUrl}" class="image-preview" alt="Preview"></td>
-                <td><a href="${processedFiles.productLink}" target="_blank">${processedFiles.productLink}</a></td>
-            `;
-            tableBody.appendChild(newRow);
         });
 
         // Listen to the success_render event from the server
@@ -142,7 +146,7 @@
             const formData = new FormData(uploadForm);
 
             // Send form data using fetch (AJAX)
-            fetch('/upload', {
+            fetch('/upload_react', {
                 method: 'POST',
                 body: formData
             })
