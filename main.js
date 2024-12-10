@@ -232,7 +232,7 @@ async function captureScreenshotClientReactTheGioiDiDong(url) {
 
             // Kiểm tra nếu width và height hợp lệ
             if (position.width > 0 && position.height > 0) {
-                const imageName = `product_${i + 1}.png`;
+                const imageName = `product_${Date.now()}.png`;
                 const fullImagePath = path.join(__dirname, 'public', 'screenshots', imageName);
 
                 // Chụp ảnh của phần tử theo tọa độ
@@ -284,18 +284,18 @@ async function captureScreenshotClientReactDiDongViet(url) {
             const links = Array.from(document.querySelectorAll('.item-slider-mobile')); // Lấy tất cả các thẻ <a>
 
             return links.map(link => {
-                    const rect = link.getBoundingClientRect(); // Lấy tọa độ của thẻ
-                    if (rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0) {
-                        return {
-                            top: rect.top,
-                            left: rect.left,
-                            right: rect.right,
-                            bottom: rect.bottom,
-                            width: rect.width,
-                            height: rect.height
-                        };
-                    }
-                }).filter(Boolean); // Loại bỏ những phần tử không hợp lệ
+                const rect = link.getBoundingClientRect(); // Lấy tọa độ của thẻ
+                if (rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0) {
+                    return {
+                        top: rect.top,
+                        left: rect.left,
+                        right: rect.right,
+                        bottom: rect.bottom,
+                        width: rect.width,
+                        height: rect.height
+                    };
+                }
+            }).filter(Boolean); // Loại bỏ những phần tử không hợp lệ
         });
 
         console.log(`Các sản phẩm có title chứa "iphone" và tọa độ:`, productPositions);
@@ -307,7 +307,7 @@ async function captureScreenshotClientReactDiDongViet(url) {
 
             // Kiểm tra nếu width và height hợp lệ
             if (position.width > 0 && position.height > 0) {
-                const imageName = `product_${i + 1}.png`;
+                const imageName = `product_${Date.now()}.png`;
                 const fullImagePath = path.join(__dirname, 'public', 'screenshots', imageName);
 
                 // Chụp ảnh của phần tử theo tọa độ
@@ -323,8 +323,7 @@ async function captureScreenshotClientReactDiDongViet(url) {
 
                 // Lưu kết quả vào mảng result
                 result.push({
-                    title: position.title,
-                    productLink: position.href,
+                    productLink: url,
                     imagePath: `/screenshots/${imageName}` // Đường dẫn ảnh từ server
                 });
             } else {
@@ -359,18 +358,18 @@ async function captureScreenshotClientReact24Store(url) {
             const links = Array.from(document.querySelectorAll('.frame_inner')); // Lấy tất cả các thẻ <a>
 
             return links.map(link => {
-                    const rect = link.getBoundingClientRect(); // Lấy tọa độ của thẻ
-                    if (rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0) {
-                        return {
-                            top: rect.top,
-                            left: rect.left,
-                            right: rect.right,
-                            bottom: rect.bottom,
-                            width: rect.width,
-                            height: rect.height
-                        };
-                    }
-                }).filter(Boolean); // Loại bỏ những phần tử không hợp lệ
+                const rect = link.getBoundingClientRect(); // Lấy tọa độ của thẻ
+                if (rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0) {
+                    return {
+                        top: rect.top,
+                        left: rect.left,
+                        right: rect.right,
+                        bottom: rect.bottom,
+                        width: rect.width,
+                        height: rect.height
+                    };
+                }
+            }).filter(Boolean); // Loại bỏ những phần tử không hợp lệ
         });
 
         console.log(`Các sản phẩm có title chứa "iphone" và tọa độ:`, productPositions);
@@ -382,7 +381,7 @@ async function captureScreenshotClientReact24Store(url) {
 
             // Kiểm tra nếu width và height hợp lệ
             if (position.width > 0 && position.height > 0) {
-                const imageName = `product_${i + 1}.png`;
+                const imageName = `product_${Date.now()}.png`;
                 const fullImagePath = path.join(__dirname, 'public', 'screenshots', imageName);
 
                 // Chụp ảnh của phần tử theo tọa độ
@@ -434,18 +433,18 @@ async function captureScreenshotClientReactHoangHa(url) {
             const links = Array.from(document.querySelectorAll('.v5-item')); // Lấy tất cả các thẻ <a>
 
             return links.map(link => {
-                    const rect = link.getBoundingClientRect(); // Lấy tọa độ của thẻ
-                    if (rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0) {
-                        return {
-                            top: rect.top,
-                            left: rect.left,
-                            right: rect.right,
-                            bottom: rect.bottom,
-                            width: rect.width,
-                            height: rect.height
-                        };
-                    }
-                }).filter(Boolean); // Loại bỏ những phần tử không hợp lệ
+                const rect = link.getBoundingClientRect(); // Lấy tọa độ của thẻ
+                if (rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0) {
+                    return {
+                        top: rect.top,
+                        left: rect.left,
+                        right: rect.right,
+                        bottom: rect.bottom,
+                        width: rect.width,
+                        height: rect.height
+                    };
+                }
+            }).filter(Boolean); // Loại bỏ những phần tử không hợp lệ
         });
 
         console.log(`Các sản phẩm có title chứa "iphone" và tọa độ:`, productPositions);
@@ -457,7 +456,7 @@ async function captureScreenshotClientReactHoangHa(url) {
 
             // Kiểm tra nếu width và height hợp lệ
             if (position.width > 0 && position.height > 0) {
-                const imageName = `product_${i + 1}.png`;
+                const imageName = `product_${Date.now()}.png`;
                 const fullImagePath = path.join(__dirname, 'public', 'screenshots', imageName);
 
                 // Chụp ảnh của phần tử theo tọa độ
@@ -540,6 +539,7 @@ app.post('/upload_react', upload.single('fileUpload'), async (req, res) => {
             }
 
             const link = data[i].Link; // Cột "Link" chứa URL
+            console.log("this is link: ", link);
             if (link) {
                 try {
                     let result = []
