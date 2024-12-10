@@ -6,9 +6,10 @@ const path = require('path');
  * @param {string} url - The URL of the webpage to process.
  * @param {string} selector - The CSS selector for the product elements.
  * @param {string} outputDir - The directory to save screenshots.
+ * @param {extra_number} extra_number - The directory to save screenshots.
  * @returns {Promise<Array>} - A list of results containing product links and image paths.
  */
-async function captureScreenshots(url, selector, outputDir) {
+async function captureScreenshots(url, selector, outputDir, extra_number = 0) {
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
     const results = [];
@@ -47,7 +48,7 @@ async function captureScreenshots(url, selector, outputDir) {
                     path: fullImagePath,
                     clip: {
                         x: position.left,
-                        y: position.top,
+                        y: position.top + extra_number,
                         width: position.width,
                         height: position.height,
                     },
@@ -72,7 +73,7 @@ async function captureScreenshots(url, selector, outputDir) {
 
 // Wrapper functions for different websites
 async function captureScreenshotTheGioiDiDong(url, outputDir) {
-    return captureScreenshots(url, '.item.ajaxed.__cate_42', outputDir);
+    return captureScreenshots(url, '.item.ajaxed.__cate_42', outputDir, 210);
 }
 
 async function captureScreenshotDiDongViet(url, outputDir) {
