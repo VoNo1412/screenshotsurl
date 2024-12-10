@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
-const path = require('path');
+const path = require("path")
 
 async function captureScreenshotsByProducts(url, buttonSelector, contentSelector, outputDir) {
     const browser = await puppeteer.launch({ headless: true });
@@ -30,8 +30,8 @@ async function captureScreenshotsByProducts(url, buttonSelector, contentSelector
                 // Click vào nút
                 await buttons[buttonIndex].click();
 
-                // Tạo tên file ảnh
-                const imageName = `product_${i + 1}_model_${buttonIndex + 1}_${Date.now()}.png`;
+                // // Tạo tên file ảnh
+                const imageName = `product_${Date.now()}.png`;
                 const fullImagePath = path.join(outputDir, imageName);
 
                 // Đảm bảo thư mục tồn tại
@@ -50,9 +50,8 @@ async function captureScreenshotsByProducts(url, buttonSelector, contentSelector
 
                     // Lưu kết quả
                     results.push({
-                        productIndex: i + 1,
-                        buttonIndex: buttonIndex + 1,
-                        imagePath: fullImagePath,
+                        productLink: url,
+                        imagePath: `/screenshots/${imageName}`,
                     });
                 } else {
                     console.warn(`Content not found for product ${i + 1}, button ${buttonIndex + 1}.`);
@@ -68,12 +67,4 @@ async function captureScreenshotsByProducts(url, buttonSelector, contentSelector
     return results;
 }
 
-// Example usage
-async function FPTSpecial(url) {
-    const buttonSelector = 'ul.flex li button'; // Selector cho các nút trong sản phẩm
-    const contentSelector = '.ProductCard_brandCard__VQQT8'; // Selector của nội dung cần chụp
-    const outputDir = path.join(__dirname, 'public', 'screenshots');
-
-    const screenshots = await captureScreenshotsByProducts(url, buttonSelector, contentSelector, outputDir);
-    console.log('Screenshots captured:', screenshots);
-}
+module.exports = captureScreenshotsByProducts;
