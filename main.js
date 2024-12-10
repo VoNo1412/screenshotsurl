@@ -11,7 +11,8 @@ const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
-
+const CONSTANT = require("./utils/constants");
+const { captureScreenshot24Store, captureScreenshotDiDongViet, captureScreenshotTheGioiDiDong, captureScreenshotHoangHa, captureScreenshotFPT } = require("./utils/screenshotUtils");
 // Port của server
 const PORT = 3000;
 
@@ -189,308 +190,6 @@ app.post('/upload', upload.single('fileUpload'), async (req, res) => {
     }
 });
 
-
-async function captureScreenshotClientReactTheGioiDiDong(url) {
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-    const result = []; // Mảng lưu kết quả trả về
-
-    try {
-        // Mở trang web sản phẩm
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 0 });
-
-        console.log('before await class')
-        await page.waitForSelector(`.main-contain `);
-        console.log('after await class')
-
-        // Lấy thông tin các sản phẩm có title chứa 'iphone' và tọa độ của chúng
-        const productPositions = await page.evaluate(() => {
-            const links = Array.from(document.querySelectorAll(`.main-contain `)); // Lấy tất cả các thẻ <a>
-            console.log(links);
-
-            return links.map(link => {
-                const rect = link.getBoundingClientRect(); // Lấy tọa độ của thẻ
-                if (rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0) {
-                    return {
-                        top: rect.top,
-                        left: rect.left,
-                        right: rect.right,
-                        bottom: rect.bottom,
-                        width: rect.width,
-                        height: rect.height + 100
-                    };
-                }
-            }).filter(Boolean); // Loại bỏ những phần tử không hợp lệ
-        });
-
-
-
-        // Chụp ảnh theo các tọa độ đã lấy
-        for (let i = 0; i < productPositions.length; i++) {
-            const position = productPositions[i];
-            console.log(position);
-
-            // Kiểm tra nếu width và height hợp lệ
-            if (position.width > 0 && position.height > 0) {
-                const imageName = `product_${Date.now()}.png`;
-                const fullImagePath = path.join(__dirname, 'public', 'screenshots', imageName);
-
-                // Chụp ảnh của phần tử theo tọa độ
-                await page.screenshot({
-                    path: fullImagePath,
-                    clip: {
-                        x: position.left,
-                        y: position.top,
-                        width: position.width,
-                        height: position.height
-                    }
-                });
-
-                // Lưu kết quả vào mảng result
-                result.push({
-                    productLink: url,
-                    imagePath: `/screenshots/${imageName}` // Đường dẫn ảnh từ server
-                });
-            } else {
-                console.log(`Không thể cắt ảnh cho sản phẩm: ${position.title} vì kích thước không hợp lệ`);
-            }
-        }
-    } catch (error) {
-        console.error('Đã có lỗi xảy ra khi chụp ảnh:', error.message);
-    } finally {
-        // Đảm bảo browser được đóng sau khi thực hiện xong
-        await browser.close();
-    }
-
-    // Trả về kết quả
-    return result;
-}
-
-
-async function captureScreenshotClientReactDiDongViet(url) {
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-    const result = []; // Mảng lưu kết quả trả về
-
-    try {
-        // Mở trang web sản phẩm
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 0 });
-
-        // Chờ cho các thẻ <img> xuất hiện
-        await page.waitForSelector('.item-slider-mobile');
-
-        // Lấy thông tin các sản phẩm có title chứa 'iphone' và tọa độ của chúng
-        const productPositions = await page.evaluate(() => {
-            const links = Array.from(document.querySelectorAll('.item-slider-mobile')); // Lấy tất cả các thẻ <a>
-
-            return links.map(link => {
-                const rect = link.getBoundingClientRect(); // Lấy tọa độ của thẻ
-                if (rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0) {
-                    return {
-                        top: rect.top,
-                        left: rect.left,
-                        right: rect.right,
-                        bottom: rect.bottom,
-                        width: rect.width,
-                        height: rect.height
-                    };
-                }
-            }).filter(Boolean); // Loại bỏ những phần tử không hợp lệ
-        });
-
-        console.log(`Các sản phẩm có title chứa "iphone" và tọa độ:`, productPositions);
-
-        // Chụp ảnh theo các tọa độ đã lấy
-        for (let i = 0; i < productPositions.length; i++) {
-            const position = productPositions[i];
-            console.log(position);
-
-            // Kiểm tra nếu width và height hợp lệ
-            if (position.width > 0 && position.height > 0) {
-                const imageName = `product_${Date.now()}.png`;
-                const fullImagePath = path.join(__dirname, 'public', 'screenshots', imageName);
-
-                // Chụp ảnh của phần tử theo tọa độ
-                await page.screenshot({
-                    path: fullImagePath,
-                    clip: {
-                        x: position.left,
-                        y: position.top,
-                        width: position.width,
-                        height: position.height
-                    }
-                });
-
-                // Lưu kết quả vào mảng result
-                result.push({
-                    productLink: url,
-                    imagePath: `/screenshots/${imageName}` // Đường dẫn ảnh từ server
-                });
-            } else {
-                console.log(`Không thể cắt ảnh cho sản phẩm: ${position.title} vì kích thước không hợp lệ`);
-            }
-        }
-    } catch (error) {
-        console.error('Đã có lỗi xảy ra khi chụp ảnh:', error.message);
-    } finally {
-        // Đảm bảo browser được đóng sau khi thực hiện xong
-        await browser.close();
-    }
-
-    // Trả về kết quả
-    return result;
-}
-
-async function captureScreenshotClientReact24Store(url) {
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-    const result = []; // Mảng lưu kết quả trả về
-
-    try {
-        // Mở trang web sản phẩm
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 0 });
-
-        // Chờ cho các thẻ <img> xuất hiện
-        await page.waitForSelector('.frame_inner');
-
-        // Lấy thông tin các sản phẩm có title chứa 'iphone' và tọa độ của chúng
-        const productPositions = await page.evaluate(() => {
-            const links = Array.from(document.querySelectorAll('.frame_inner')); // Lấy tất cả các thẻ <a>
-
-            return links.map(link => {
-                const rect = link.getBoundingClientRect(); // Lấy tọa độ của thẻ
-                if (rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0) {
-                    return {
-                        top: rect.top,
-                        left: rect.left,
-                        right: rect.right,
-                        bottom: rect.bottom,
-                        width: rect.width,
-                        height: rect.height
-                    };
-                }
-            }).filter(Boolean); // Loại bỏ những phần tử không hợp lệ
-        });
-
-        console.log(`Các sản phẩm có title chứa "iphone" và tọa độ:`, productPositions);
-
-        // Chụp ảnh theo các tọa độ đã lấy
-        for (let i = 0; i < productPositions.length; i++) {
-            const position = productPositions[i];
-            console.log(position);
-
-            // Kiểm tra nếu width và height hợp lệ
-            if (position.width > 0 && position.height > 0) {
-                const imageName = `product_${Date.now()}.png`;
-                const fullImagePath = path.join(__dirname, 'public', 'screenshots', imageName);
-
-                // Chụp ảnh của phần tử theo tọa độ
-                await page.screenshot({
-                    path: fullImagePath,
-                    clip: {
-                        x: position.left,
-                        y: position.top,
-                        width: position.width,
-                        height: position.height
-                    }
-                });
-
-                // Lưu kết quả vào mảng result
-                result.push({
-                    // title: position.title,
-                    productLink: url,
-                    imagePath: `/screenshots/${imageName}` // Đường dẫn ảnh từ server
-                });
-            } else {
-                console.log(`Không thể cắt ảnh cho sản phẩm: ${position.title} vì kích thước không hợp lệ`);
-            }
-        }
-    } catch (error) {
-        console.error('Đã có lỗi xảy ra khi chụp ảnh:', error.message);
-    } finally {
-        // Đảm bảo browser được đóng sau khi thực hiện xong
-        await browser.close();
-    }
-
-    // Trả về kết quả
-    return result;
-}
-
-async function captureScreenshotClientReactHoangHa(url) {
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-    const result = []; // Mảng lưu kết quả trả về
-
-    try {
-        // Mở trang web sản phẩm
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 0 });
-
-        // Chờ cho các thẻ <img> xuất hiện
-        await page.waitForSelector('.v5-item');
-
-        // Lấy thông tin các sản phẩm có title chứa 'iphone' và tọa độ của chúng
-        const productPositions = await page.evaluate(() => {
-            const links = Array.from(document.querySelectorAll('.v5-item')); // Lấy tất cả các thẻ <a>
-
-            return links.map(link => {
-                const rect = link.getBoundingClientRect(); // Lấy tọa độ của thẻ
-                if (rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0) {
-                    return {
-                        top: rect.top,
-                        left: rect.left,
-                        right: rect.right,
-                        bottom: rect.bottom,
-                        width: rect.width,
-                        height: rect.height
-                    };
-                }
-            }).filter(Boolean); // Loại bỏ những phần tử không hợp lệ
-        });
-
-        console.log(`Các sản phẩm có title chứa "iphone" và tọa độ:`, productPositions);
-
-        // Chụp ảnh theo các tọa độ đã lấy
-        for (let i = 0; i < productPositions.length; i++) {
-            const position = productPositions[i];
-            console.log(position);
-
-            // Kiểm tra nếu width và height hợp lệ
-            if (position.width > 0 && position.height > 0) {
-                const imageName = `product_${Date.now()}.png`;
-                const fullImagePath = path.join(__dirname, 'public', 'screenshots', imageName);
-
-                // Chụp ảnh của phần tử theo tọa độ
-                await page.screenshot({
-                    path: fullImagePath,
-                    clip: {
-                        x: position.left,
-                        y: position.top,
-                        width: position.width,
-                        height: position.height
-                    }
-                });
-
-                // Lưu kết quả vào mảng result
-                result.push({
-                    // title: position.title,
-                    productLink: url,
-                    imagePath: `/screenshots/${imageName}` // Đường dẫn ảnh từ server
-                });
-            } else {
-                console.log(`Không thể cắt ảnh cho sản phẩm: ${position.title} vì kích thước không hợp lệ`);
-            }
-        }
-    } catch (error) {
-        console.error('Đã có lỗi xảy ra khi chụp ảnh:', error.message);
-    } finally {
-        // Đảm bảo browser được đóng sau khi thực hiện xong
-        await browser.close();
-    }
-
-    // Trả về kết quả
-    return result;
-}
-
 app.post('/upload_react', upload.single('fileUpload'), async (req, res) => {
     try {
         const filePath = req.file.path;
@@ -543,20 +242,24 @@ app.post('/upload_react', upload.single('fileUpload'), async (req, res) => {
             if (link) {
                 try {
                     let result = []
-                    if (link.includes("didongviet")) {
-                        result = await captureScreenshotClientReactDiDongViet(link); //result type array
+                    if (link.includes(CONSTANT.DI_DONG_VIET)) {
+                        result = await captureScreenshotDiDongViet(link, outputDir); //result type array
                     }
 
-                    if (link.includes("thegioididong")) {
-                        result = await captureScreenshotClientReactTheGioiDiDong(link); //result type array
+                    if (link.includes(CONSTANT.THE_GIOI_DI_DONG)) {
+                        result = await captureScreenshotTheGioiDiDong(link, outputDir); //result type array
                     }
 
-                    if (link.includes("24hstore")) {
-                        result = await captureScreenshotClientReact24Store(link); //result type array
+                    if (link.includes(CONSTANT['24H_STORE'])) {
+                        result = await captureScreenshot24Store(link, outputDir); //result type array
                     }
 
-                    if (link.includes("hoangha")) {
-                        result = await captureScreenshotClientReactHoangHa(link); //result type array
+                    if (link.includes(CONSTANT.HOANG_HA)) {
+                        result = await captureScreenshotHoangHa(link, outputDir); //result type array
+                    }
+                    
+                    if (link.includes(CONSTANT.FPT)) {
+                        result = await captureScreenshotFPT(link, outputDir); //result type array
                     }
                     console.log("result: ", result)
                     // Gửi tiến độ đến client
