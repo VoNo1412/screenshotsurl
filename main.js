@@ -341,6 +341,10 @@ app.get('/downloadFolder', (req, res) => {
     archive.finalize();
 });
 
+app.get('/clean_up_folder', (req, res) => {
+    cleanUp();
+})
+
 // Hàm xóa file khi server tắt
 function cleanUp() {
     const folderPath = path.join(__dirname, 'public', 'screenshots');

@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
+const captureScreenshotsByProducts = require("./special_fpt")
 
 /**
  * Generic function to capture screenshots of product elements on a webpage.
@@ -89,7 +90,9 @@ async function captureScreenshotHoangHa(url, outputDir) {
 }
 
 async function captureScreenshotFPT(url, outputDir) {
-    return captureScreenshots(url, '.ProductCard_brandCard__VQQT8', outputDir);
+    const buttonSelector = 'ul.flex li button'; // Selector cho các nút trong sản phẩm
+    const contentSelector = '.ProductCard_brandCard__VQQT8'; // Selector của nội dung cần chụp
+    return captureScreenshotsByProducts(url, buttonSelector, contentSelector, outputDir);
 }
 
 module.exports = {

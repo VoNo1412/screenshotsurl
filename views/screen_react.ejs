@@ -6,12 +6,15 @@
         <label for="fileUpload">Upload Excel File:</label>
         <input type="file" name="fileUpload" id="fileUpload" required>
         <button type="submit">Submit Screenshot</button>
-        <button type="button" id="stopButton"
+        <!-- <button type="button" id="stopButton"
             style="background-color: red; color: white; margin-left: 10px;">Stop</button>
 
         <button type="button" id="startButton"
-            style="background-color: blue; color: white; margin-left: 10px;">Start</button>
-
+            style="background-color: blue; color: white; margin-left: 10px;">Start</button> -->
+        <button type="button" id="cleanUpButton"
+            style="background-color: green; color: white; margin-left: 10px;">
+            Reload Page
+        </button>
     </form>
 
     <!-- Pie Chart -->
@@ -55,6 +58,14 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
+        document.getElementById('cleanUpButton').addEventListener('click', function () {
+            // Redirect to /clean_up_folder and reload the page
+            fetch('/clean_up_folder', {
+                method: 'GET'
+            })
+
+            location.reload();
+        })
         const socket = io();
 
         // Default Pie Chart with 0% processed and 100% remaining
@@ -113,7 +124,7 @@
                 const imageUrl = element.imagePath ? element.imagePath : 'path/to/default/image.jpg'; // fallback image if url is invalid
                 const newRow = document.createElement('tr');
                 console.log("product: ", element)
-                    newRow.innerHTML = ` 
+                newRow.innerHTML = ` 
                     <td><img src="${imageUrl}" class="image-preview" alt="Preview"></td>
                     <td>${element.title}</td>
                     <td><a href="${element.productLink}" target="_blank">${element.productLink}</a></td>
