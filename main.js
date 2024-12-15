@@ -261,7 +261,7 @@ app.post('/upload_react', upload.single('fileUpload'), async (req, res) => {
                     if (link.includes(CONSTANT.FPT)) {
                         result = await captureScreenshotFPT(link, outputDir); //result type array
                     }
-                    console.log("result: ", result)
+                    // console.log("result: ", result)
                     // Gửi tiến độ đến client
                     io.emit('updateProgressReact', {
                         totalFiles: data.length,
@@ -324,7 +324,7 @@ app.get('/downloadFolder', (req, res) => {
             }
             // Xóa file zip và thư mục ảnh sau khi tải xong
             fs.unlinkSync(zipPath);
-            fs.rmdirSync(folderPath, { recursive: true }); // Xóa thư mục 'screenshots' nếu cần
+            fs.rmSync(folderPath, { recursive: true }); // Xóa thư mục 'screenshots' nếu cần
         });
     });
 
@@ -351,7 +351,7 @@ function cleanUp() {
     const zipPath = path.join(__dirname, 'public', 'screenshots.zip');
     // Kiểm tra nếu thư mục ảnh tồn tại thì xóa
     if (fs.existsSync(folderPath)) {
-        fs.rmdirSync(folderPath, { recursive: true });
+        fs.rmSync(folderPath, { recursive: true });
     }
     // Kiểm tra nếu file zip tồn tại thì xóa
     if (fs.existsSync(zipPath)) {

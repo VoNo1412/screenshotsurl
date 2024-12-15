@@ -123,7 +123,7 @@
                 const element = processedFiles[i];
                 const imageUrl = element.imagePath ? element.imagePath : 'path/to/default/image.jpg'; // fallback image if url is invalid
                 const newRow = document.createElement('tr');
-                console.log("product: ", element)
+                // console.log("product: ", element)
                 newRow.innerHTML = ` 
                     <td><img src="${imageUrl}" class="image-preview" alt="Preview"></td>
                     <td>${element.title}</td>
@@ -184,28 +184,28 @@
             }
         });
 
-        // Close modal when clicking on the 'x'
-        const span = document.getElementsByClassName('close')[0];
-        span.onclick = function () {
-            modal.style.display = 'none';
-        }
+        document.body.addEventListener('click', (event) => {
+            if (event.target.classList.contains('modal')) {
+                modal.style.display = 'none';
+            }
+        });
 
         // Biến để theo dõi trạng thái stop
         let isStopped = false;
 
-        // Xử lý khi nhấn nút Stop
-        document.getElementById('stopButton').addEventListener('click', function () {
-            isStopped = true; // Đặt trạng thái dừng
-            socket.emit('stopProcess'); // Gửi tín hiệu đến server
-            alert('Processing stopped!');
-        });
+        // // Xử lý khi nhấn nút Stop
+        // document.getElementById('stopButton').addEventListener('click', function () {
+        //     isStopped = true; // Đặt trạng thái dừng
+        //     socket.emit('stopProcess'); // Gửi tín hiệu đến server
+        //     alert('Processing stopped!');
+        // });
 
-        // Xử lý khi nhấn nút Start
-        document.getElementById('startButton').addEventListener('click', function () {
-            isStopped = false; // Đặt trạng thái dừng
-            socket.emit('startProcess'); // Gửi tín hiệu đến server
-            alert('Processing started!');
-        });
+        // // Xử lý khi nhấn nút Start
+        // document.getElementById('startButton').addEventListener('click', function () {
+        //     isStopped = false; // Đặt trạng thái dừng
+        //     socket.emit('startProcess'); // Gửi tín hiệu đến server
+        //     alert('Processing started!');
+        // });
 
 
     </script>
